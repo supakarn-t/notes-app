@@ -135,4 +135,62 @@ app.post("/login", async (req, res) => {
 	});
 });
 
+// get user
+app.get("/user", authenticateToken, async (req, res) => {
+	const { user } = req.user;
+
+	const isUser = await User.findOne({ _id: user._id });
+
+	if (!isUser) {
+		return res.sendStatus(401);
+	}
+
+	return res.json({
+		user: isUser,
+		message: "",
+	});
+});
+
+// add note
+app.post("/add-note", authenticateToken, async (req, res) => {
+	const { title, content, tags } = req.body;
+	const { user } = req.user;
+
+	if (!title) {
+		return res.status(400).json({
+			error: true,
+			message: "Title is required",
+		});
+	}
+
+	if (!content) {
+		return res.status(400).json({
+			error: true,
+			message: "Content is required",
+		});
+	}
+
+	try {
+		const note = new Note({
+			title,
+			content,
+			tag: tags || [],
+			userId: user._id,
+		});
+
+		await note.save();
+
+		return res.json({
+			error: false,
+			note,
+			message: "Note added successfully",
+		});
+	} catch (error) {
+		return res.status(500).json({
+			error: true,
+			message: "Internal Server Error",
+		});
+	}
+});
+
 module.exports = app;
