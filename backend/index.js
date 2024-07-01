@@ -18,7 +18,6 @@ const app = express();
 
 const jwt = require("jsonwebtoken");
 const { authenticateToken } = require("./utilities");
-const e = require("express");
 
 app.use(express.json());
 app.use(cors({ origin: "*" }));
@@ -28,7 +27,7 @@ app.listen(PORT, () => {
 	console.log(`Server listening on port ${PORT} 🌎`);
 });
 
-app.get("/", (req, res) => {
+app.get("/", (_, res) => {
 	res.json({ data: "respond received from the server!" });
 });
 
@@ -190,6 +189,58 @@ app.post("/add-note", authenticateToken, async (req, res) => {
 			error: true,
 			message: "Internal Server Error",
 		});
+	}
+});
+
+// edit note
+app.put("/edit-note/:noteId", authenticateToken, async (req, res) => {
+	const noteId = req.params.noteId;
+	const { title, content, tags, isPinned } = req.body;
+	const { user } = req.user;
+
+	if (!title && !content && !tags) {
+		return (
+			res.status(400),
+			json({
+				error: true,
+				message: "No change provided",
+			})
+		);
+	}
+
+	try {
+		const note = await Note.findOne({
+			_id: noteId,
+			userId: user._id,
+		});
+
+		if (!note) {
+			return res.status(404).json({
+				reeor: true,
+				message: "Note not found",
+			});
+		}
+
+		if (title) note.title = title;
+		if (content) note.content = content;
+		if (tags) note.tags = tags;
+		if (isPinned) note.isPinned = isPinned;
+
+		await note.save();
+
+		return res.json({
+			error: false,
+			note,
+			message: "Note updated successfully",
+		});
+	} catch (error) {
+		return (
+			res.status(500),
+			json({
+				error: true,
+				message: "Internal Server Error",
+			})
+		);
 	}
 });
 
