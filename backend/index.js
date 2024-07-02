@@ -116,7 +116,7 @@ app.post("/login", async (req, res) => {
 
 	if (userInfo.email == email && userInfo.password == password) {
 		const user = { user: userInfo };
-		const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, {
+		const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
 			expiresIn: "36000m", // ~25days
 		});
 
@@ -173,7 +173,7 @@ app.post("/add-note", authenticateToken, async (req, res) => {
 		const note = new Note({
 			title,
 			content,
-			tag: tags || [],
+			tags: tags || [],
 			userId: user._id,
 		});
 
@@ -244,7 +244,7 @@ app.put("/edit-note/:noteId", authenticateToken, async (req, res) => {
 	}
 });
 
-// update isPinned
+// Update isPinned
 app.put("/update-note-pinned/:noteId", authenticateToken, async (req, res) => {
 	const noteId = req.params.noteId;
 	const { isPinned } = req.body;
@@ -252,13 +252,16 @@ app.put("/update-note-pinned/:noteId", authenticateToken, async (req, res) => {
 
 	try {
 		const note = await Note.findOne({ _id: noteId, userId: user._id });
+
 		if (!note) {
 			return res.status(404).json({
 				error: true,
 				message: "Note not found",
 			});
 		}
+
 		note.isPinned = isPinned;
+
 		await note.save();
 
 		return res.json({
@@ -274,7 +277,7 @@ app.put("/update-note-pinned/:noteId", authenticateToken, async (req, res) => {
 	}
 });
 
-// get all notes
+// Get all Notes
 app.get("/note", authenticateToken, async (req, res) => {
 	const { user } = req.user;
 
@@ -305,6 +308,7 @@ app.delete("/delete-note/:noteId", authenticateToken, async (req, res) => {
 		if (!note) {
 			return res.status(404).json({ error: true, message: "Note not found" });
 		}
+
 		await Note.deleteOne({ _id: noteId, userId: user._id });
 
 		return res.json({
@@ -319,7 +323,7 @@ app.delete("/delete-note/:noteId", authenticateToken, async (req, res) => {
 	}
 });
 
-// search notes
+// Search Notes
 app.get("/search-note", authenticateToken, async (req, res) => {
 	const { user } = req.user;
 	const { query } = req.query;
@@ -329,6 +333,7 @@ app.get("/search-note", authenticateToken, async (req, res) => {
 			.status(400)
 			.json({ error: true, message: "Search query is required" });
 	}
+
 	try {
 		const matchingNotes = await Note.find({
 			userId: user._id,
@@ -337,6 +342,7 @@ app.get("/search-note", authenticateToken, async (req, res) => {
 				{ content: { $regex: new RegExp(query, "i") } }, // Case-insensitive content match
 			],
 		});
+
 		return res.json({
 			error: false,
 			notes: matchingNotes,
